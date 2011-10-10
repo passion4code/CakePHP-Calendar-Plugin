@@ -52,6 +52,17 @@ class CalendarHelper extends AppHelper{
      */
     public $day_content_class = 'day-content';
 
+    /**
+     * @var string class name of the calendar container
+     */
+    public $container_class = 'calendar';
+
+    /**
+     *
+     * @var string id of the calendar container
+     */
+    public $container_id = null;
+
   
 
 /**
@@ -169,7 +180,7 @@ class CalendarHelper extends AppHelper{
         
         $calendar_table_cells = $this->Html->tableCells($table_rows);
         $calendar_content .= $this->Html->tag('table',$calendar_table_header . $calendar_table_cells);
-        $calendar_content = $this->Html->tag('div',$calendar_content,array('class' => $options['class'],'id' => @$options['id']));
+        $calendar_content = $this->Html->tag('div',$calendar_content,array('class' => $this->container_class,'id' => $this->container_id));
         return $calendar_content;
     }
 
@@ -216,7 +227,7 @@ class CalendarHelper extends AppHelper{
 
         }
         
-        $options = array_merge(array('next_prev_count' => 2,'link_template' => array('month' => $options['month'],'year' => $options['year']),'show_day_link' => true,'class' => 'calendar','id' => null),$options);
+        $options = array_merge(array('next_prev_count' => 2,'link_template' => array('month' => $options['month'],'year' => $options['year']),'show_day_link' => true),$options);
         
 
         return $options;
@@ -225,13 +236,13 @@ class CalendarHelper extends AppHelper{
     public function days_of_week(){
         $beginning = strtotime('Last Sunday');
         return array(
-           strftime($this->day_abbreviation_format, $beginning += 84600),
-           strftime($this->day_abbreviation_format, $beginning += 84600),
-           strftime($this->day_abbreviation_format, $beginning += 84600),
-           strftime($this->day_abbreviation_format, $beginning += 84600),
-           strftime($this->day_abbreviation_format, $beginning += 84600),
-           strftime($this->day_abbreviation_format, $beginning += 84600),
            strftime($this->day_abbreviation_format, $beginning),
+           strftime($this->day_abbreviation_format, $beginning += 86400),
+           strftime($this->day_abbreviation_format, $beginning += 86400),
+           strftime($this->day_abbreviation_format, $beginning += 86400),
+           strftime($this->day_abbreviation_format, $beginning += 86400),
+           strftime($this->day_abbreviation_format, $beginning += 86400),
+           strftime($this->day_abbreviation_format, $beginning += 86400),
         );
     }
 
