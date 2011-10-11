@@ -1,6 +1,8 @@
 <?php
+
+
 class CalendarHelper extends AppHelper{
-    var $helpers = array('Html','Javascript');
+    var $helpers = array('Html');
 
 
     /**
@@ -63,6 +65,11 @@ class CalendarHelper extends AppHelper{
      */
     public $container_id = null;
 
+    /**
+     * @var string id of calendar navigation or current month / year label
+     */
+    public $top_navigation_id = 'calendar-navigation';
+
   
 
 /**
@@ -72,7 +79,7 @@ class CalendarHelper extends AppHelper{
      *  month (int)
      *  year(int)
      *  next_prev_count (int)  number of months to show to the left and right for navigation
-     *  content array - year / month / day indexed, the index should represent the month => day in which you want the content appended
+     *  events array - year / month / day indexed, the index should represent the month => day in which you want the content appended
      *          (ex) For the month of June, in 2010 array( 2010 => array(06 => array(1 => 'Partridge in a pear tree', 5 => 'Golden Rings')))
      * @return string output of an HTML calendar
      * @access public
@@ -81,6 +88,7 @@ class CalendarHelper extends AppHelper{
     	$options = $this->_setDefaults($options);
 
 
+        //What day is today? int value with no leading 0s
         $today = date('d');
         //what's the first day of this month?
         $first_day = date('w',mktime(0,0,0,$options['month'],1,$options['year']));
@@ -99,11 +107,13 @@ class CalendarHelper extends AppHelper{
         //We will start by building out the year and month header 
 
 
+        //hold top nav or just month/year label of calendar being shown
+        $calendar_top_navigation = '';
         //Any "previous" month navigations we wanna show?
         for($x=(0-$options['next_prev_count']);$x < 0;$x++){
             $month_year = $this->__getYearAndMonth($options['month'],$options['year'],$x);
             //@TODO place these in separate element as a step towards putting more items in the calendar as re-usable and easier to manage display elements
-            $calendar_content .= $this->Html->link(strftime('%b',mktime(0,0,0,$month_year['month'],1,$month_year['year'])),
+            $calendar_top_navigation .= $this->Html->link(strftime('%b',mktime(0,0,0,$month_year['month'],1,$month_year['year'])),
 	                array_merge($this->params['named'],$month_year),
 	                array(
 	                    'title' => __('Previous Month',true),
@@ -114,13 +124,13 @@ class CalendarHelper extends AppHelper{
 
         }
         //Show the current month / year in between previous and next months
-        $calendar_content .= $this->Html->tag('span',strftime('%B',mktime(0,0,0,$options['month'],1,$options['year'])),array('id' => 'calendar-month'));
-        $calendar_content .= $this->Html->tag('span',strftime('%Y',mktime(0,0,0,$options['month'],1,$options['year'])),array('id' => 'calendar-year'));
+        $calendar_top_navigation .= $this->Html->tag('span',strftime('%B',mktime(0,0,0,$options['month'],1,$options['year'])),array('id' => 'calendar-month'));
+        $calendar_top_navigation .= $this->Html->tag('span',strftime('%Y',mktime(0,0,0,$options['month'],1,$options['year'])),array('id' => 'calendar-year'));
 
         //Next Months
         for($x=0;$x<$options['next_prev_count'];$x++){
             $month_year = $this->__getYearAndMonth($options['month'],$options['year'],$x+1);
-            $calendar_content .=  $this->Html->link(strftime('%b',mktime(0,0,0,$month_year['month'],1,$month_year['year'])),
+            $calendar_top_navigation .=  $this->Html->link(strftime('%b',mktime(0,0,0,$month_year['month'],1,$month_year['year'])),
 	                array_merge($this->params['named'],$month_year),
 	                array(
 	                    'title' => __('Next Month',true),
@@ -129,16 +139,28 @@ class CalendarHelper extends AppHelper{
 	            ));
         }
 
+        $calendar_content .= $this->Html->tag('div',$calendar_top_navigation,array('id' => $this->top_navigation_id));
         $days_of_week = $this->days_of_week();
         $calendar_table_header = $this->Html->tableHeaders($days_of_week);
 
         $table_rows = array();
 	       
-	            
+
+        /* A little explanation of variables here
+         *
+         * $cur_day holds the int value of the day
+         * $full_day holds the 2 character string of the day
+         * $display_day_value holds the value to be output in the cell of the day, which could be a link or it could be just the cur_day
+         *
+         * @TODO more clever way to split $full_day and $cur_day as they can both be referenced, one is used for display,
+         *  and could be done without having separate vars, as we already have a display_day_value
+         *
+         */
         for($x=0;$x<$weeks_in_month;$x++){
             $table_cells = array();
             for($y=0;$y<7;$y++){
-                $cur_day = $day_counter - $first_day;
+                $cur_day = $full_day = $day_counter - $first_day;
+                $full_day = (string) $full_day;
                 if( ($cur_day >= 1)  && ($cur_day <= $days_in_month)){
 
                     if($options['show_day_link'] == true){
@@ -148,10 +170,14 @@ class CalendarHelper extends AppHelper{
                     }else{
                             $display_day_value = $cur_day;
                     }
-                }else{//this day is not in the month, so we show nothing
+
+                }else{//this day is not in the month, so we show nothing @TODO show last month or next month "hints"?
                     $display_day_value = " ";
                 }
 
+                if(strlen($full_day) == 1){
+                    $full_day = '0'.$full_day;
+                }
                 $td_class_name = '';
                 if($today == $cur_day && $options['month'] == date('m') && $options['year'] == date('Y')){
                     $td_class_name = $this->today_day_class;
@@ -162,14 +188,14 @@ class CalendarHelper extends AppHelper{
                 }
 
                 $cell_content = $this->Html->tag('span',$display_day_value,array('class' => $this->day_class));
-                if(isset($options['content'][$options['year']][$options['month']][$cur_day])){
-                    if(!is_array($options['content'][$options['year']][$options['month']][$cur_day])){
-                        $options['content'][$options['year']][$options['month']][$cur_day] = array($options['content'][$options['year']][$options['month']][$cur_day]);                         
-                    }
-                    foreach($options['content'][$options['year']][$options['month']][$cur_day] as $day_content){
+
+       
+                if(isset($this->content[$options['year']][$options['month']][$full_day])){
+                    
+                    foreach($this->content[$options['year']][$options['month']][$full_day] as $day_content){
                         $cell_content .=  $this->Html->tag($this->day_content_tag,$day_content,array('class' => $this->day_content_class));
                     }
-                    
+
                 }
                 $table_cells[] = array($cell_content,array('class' => $td_class_name));
                 
@@ -206,7 +232,6 @@ class CalendarHelper extends AppHelper{
 
 
     private function _setDefaults($options){
-    	//@TODO Clever array_merge here
         if(!isset($options['month']) || empty($options['month'])){
             if(isset($this->params['named']['month'])){
                 $options['month'] = $this->params['named']['month'];
@@ -228,9 +253,59 @@ class CalendarHelper extends AppHelper{
         }
         
         $options = array_merge(array('next_prev_count' => 2,'link_template' => array('month' => $options['month'],'year' => $options['year']),'show_day_link' => true),$options);
-        
+
+
+        /** If the events are passed into the options */
+        if(isset($options['events']) && is_array($options['events'])){
+            foreach($options['events'] as $year => $months){
+                foreach($months as $month => $days){
+                    foreach($days as $day => $content){
+                        $this->event($year.'-'.$month.'-'.$day,$content);
+                    }
+                }
+            }
+            unset($options['content']);
+        }
 
         return $options;
+    }
+
+
+    /**
+     * @param string any valid date recognized by strtotime
+     * @param string|array content to be placed into the table cell
+     * @return boolean 
+     */
+    public function event($date, $content = ''){
+
+        if(is_array($date)){
+            foreach($date as $d => $content){
+                
+                $this->event($d,$content);
+            }
+        }else{
+            if(is_string($date) && !strtotime($date)) return false;
+
+            if(is_numeric($date) && !date('Y',$date)) return false;
+            
+            $time = is_string($date) ? strtotime($date) : $date;
+            $year = date('Y',$time);
+            $month = date('m',$time);
+            $day = date('d',$time);
+            if(!isset($this->content[$year][$month][$day])){
+                $this->content[$year][$month][$day] = array();
+            }
+            if(is_array($content)){
+                foreach($content as $c){
+                    $this->content[$year][$month][$day][] = $c;
+                }
+            }else{
+                $this->content[$year][$month][$day][] = $content;
+            }
+        }
+        
+        
+        return true;
     }
 
     public function days_of_week(){
