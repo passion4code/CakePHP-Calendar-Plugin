@@ -70,6 +70,13 @@ class CalendarHelper extends AppHelper{
      */
     public $top_navigation_id = 'calendar-navigation';
 
+
+    /**
+     *
+     * @var array CakePHP Router::url() friendly location of the ajax calendar navigation handler
+     */
+    public $ajax_calendar_url = array('controller' => 'calendars','plugin' => 'calendar','action' => 'navigate');
+
   
 
 /**
@@ -113,13 +120,18 @@ class CalendarHelper extends AppHelper{
         for($x=(0-$options['next_prev_count']);$x < 0;$x++){
             $month_year = $this->__getYearAndMonth($options['month'],$options['year'],$x);
             //@TODO place these in separate element as a step towards putting more items in the calendar as re-usable and easier to manage display elements
-            $calendar_top_navigation .= $this->Html->link(strftime('%b',mktime(0,0,0,$month_year['month'],1,$month_year['year'])),
-	                array_merge($this->params['named'],$month_year),
+
+            $prev_month_link = array_merge($this->params['named'],$month_year);
+            if($options['ajax']){
+                $prev_month_link = array_merge($this->ajax_calendar_url,$prev_month_link);
+            }
+            $calendar_top_navigation .= $this->Html->tag('span',$this->Html->link(strftime('%b',mktime(0,0,0,$month_year['month'],1,$month_year['year'])),
+	                $prev_month_link,
 	                array(
 	                    'title' => __('Previous Month',true),
 	                    'id' => 'previous-month',
                             'class' => $this->next_prev_month_class
-	            ));
+	            )));
             
 
         }
@@ -130,14 +142,20 @@ class CalendarHelper extends AppHelper{
         //Next Months
         for($x=0;$x<$options['next_prev_count'];$x++){
             $month_year = $this->__getYearAndMonth($options['month'],$options['year'],$x+1);
-            $calendar_top_navigation .=  $this->Html->link(strftime('%b',mktime(0,0,0,$month_year['month'],1,$month_year['year'])),
-	                array_merge($this->params['named'],$month_year),
+
+            $next_month_link = array_merge($this->params['named'],$month_year);
+            if($options['ajax']){
+                $next_month_link = array_merge($this->ajax_calendar_url,$next_month_link);
+            }
+            $calendar_top_navigation .=  $this->Html->tag('span',$this->Html->link(strftime('%b',mktime(0,0,0,$month_year['month'],1,$month_year['year'])),
+	                $next_month_link,
 	                array(
 	                    'title' => __('Next Month',true),
 	                    'id' => 'next-month',
                             'class' => $this->next_prev_month_class
-	            ));
+	            )));
         }
+        $calendar_top_navigation .= $this->Html->div('calendar-clear','&nbsp;');
 
         $calendar_content .= $this->Html->tag('div',$calendar_top_navigation,array('id' => $this->top_navigation_id));
         $days_of_week = $this->days_of_week();
@@ -207,6 +225,19 @@ class CalendarHelper extends AppHelper{
         $calendar_table_cells = $this->Html->tableCells($table_rows);
         $calendar_content .= $this->Html->tag('table',$calendar_table_header . $calendar_table_cells);
         $calendar_content = $this->Html->tag('div',$calendar_content,array('class' => $this->container_class,'id' => $this->container_id));
+
+        if($options['ajax']){
+            $engine = false;
+            if($options['ajax'] === true){
+                $engine = 'jquery';
+            }elseif(is_string($options['ajax'])){
+                $engine = $options['ajax'];
+            }
+
+            if($engine){
+                $this->Html->script('/calendar/js/calendar.'.$engine.'.js',array('inline' => false));
+            }
+        }
         return $calendar_content;
     }
 
@@ -252,7 +283,7 @@ class CalendarHelper extends AppHelper{
 
         }
         
-        $options = array_merge(array('next_prev_count' => 2,'link_template' => array('month' => $options['month'],'year' => $options['year']),'show_day_link' => true),$options);
+        $options = array_merge(array('ajax' => false,'next_prev_count' => 2,'link_template' => array('month' => $options['month'],'year' => $options['year']),'show_day_link' => true),$options);
 
 
         /** If the events are passed into the options */

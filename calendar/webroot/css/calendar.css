@@ -1,0 +1,15 @@
+.calendar{text-align:center; width: 450px;}
+.calendar-clear{clear:both;}
+
+
+/* Navigation */
+#calendar-navigation span{ display:inline;padding: 3px 25px;}
+#calendar-navigation span#calendar-month, #calendar-navigation span#calendar-year{ padding: 3px 2px;}
+
+
+/* Calendar Table */
+.calendar table tr th{ border-bottom: dashed #020202 1px; background-color: #e3e3e3;}
+.calendar table tr td{ height: 75px; }
+
+
+
